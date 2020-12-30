@@ -1,50 +1,77 @@
-<img src="imaginaire_logo.svg" alt="imaginaire_logo.svg" height="360"/>
+# DuckieTown Sim2real with Nvidia UNIT
 
-# Imaginaire
-### [Docs](http://imaginaire.cc/docs) | [License](LICENSE.md) | [Installation](INSTALL.md) | [Model Zoo](MODELZOO.md)
+To reproduce our results, you will need :
+- A Simulator dataset and a Real dataset from Duckiebot logs. Both need to be of equal length.
+- Nvidia Docker as well as Nvidia drivers installed. 
 
-Imaginaire is a [pytorch](https://pytorch.org/) library that contains
-optimized implementation of several image and video synthesis methods developed at [NVIDIA](https://www.nvidia.com/en-us/).
+Then, make a train/test split with your dataset. 
+Create a folder `/dataset/sim2real_raw` which follows this directory structure
+ ```
+    /dataset/sim2real_raw
+            - test
+                - images_a:
+                    - 0001.jpeg
+                    - 0002.jpeg
+                    - 0003.jpeg
+                - images_b
+                    - 0001.jpeg
+                    - 0002.jpeg
+                    - 0003.jpeg
+            - train
+                - images_a
+                    - 0001.jpeg
+                    - 0002.jpeg
+                    - 0003.jpeg
+                - images_b
+                    - 0001.jpeg
+                    - 0002.jpeg
+                    - 0003.jpeg
+ ```
+Here, `images_a` and `images_b` correspond to the real and sim environment. Both are interchangable
+as long as `a` is always associated to the same environement and same thing for `b`. Make sure to have the files 
+saved as `.jpeg` and not `.jpg`, as this will cause some issues. 
 
-## License
+Once the raw data is set up, we need to build the lmdb dataset by running the following command:
 
-Imaginaire is released under [NVIDIA Software license](LICENSE.md).
-For commercial use, please consult [researchinquiries@nvidia.com](researchinquiries@nvidia.com)
+`bash scripts/build_lmdb.sh unit sim2real`
 
+Then we need to build and start the docker container that will allow us to run train our model with :
 
-## What's inside?
+`bash scripts/build_docker.sh 20.05`
 
-[![IMAGE ALT TEXT](http://img.youtube.com/vi/jgTX5OnAsYQ/0.jpg)](http://www.youtube.com/watch?v=jgTX5OnAsYQ "Imaginaire")
+Followed by:
 
-We have a tutorial for each model. Click on the model name, and your browser should take you to the tutorial page for the project.
+`bash start_local_docker.sh 20.05`
 
-### Supervised Image-to-Image Translation
+For more installation details, please refer to  [this README](https://github.com/phred1/imaginaire/blob/master/INSTALL.md)
 
-|Algorithm Name                               | Feature                                                                                                         | Publication                                                   |
-|:--------------------------------------------|:----------------------------------------------------------------------------------------------------------------|--------------------------------------------------------------:|
-|[pix2pixHD](projects/pix2pixhd/README.md)     | Learn a mapping that converts a semantic image to a high-resolution photorealistic image.                       |    [Wang et. al. CVPR 2018](https://arxiv.org/abs/1711.11585) |
-|[SPADE](projects/spade/README.md)             | Improve pix2pixHD on handling diverse input labels and delivering better output quality.                        |    [Park et. al. CVPR 2019](https://arxiv.org/abs/1903.07291) |
+Once the container is successfuly started, run this command to train the model:
 
+```
+python -m torch.distributed.launch --nproc_per_node=1 inference.py \
+--config configs/projects/unit/sim2real/sim2real.yaml \
+--output_dir projects/unit/output/sim2real
+``` 
 
-### Unsupervised Image-to-Image Translation
+To test the trained model, simply create a directory
+`/configs/projects/unit/test_data` with the following structure: 
+```
+    - images_a:
+        - 0002.jpeg
+        - 0008.jpeg
+        - 0033.jpeg
+    - images_b
+        - 0002.jpeg
+        - 0008.jpeg
+        - 0033.jpeg
+```
+To before testing the model on test data, we need to take the model checkpoint that was created in the `logs/**Date**_sim2real` folder. 
 
-
-|Algorithm Name                               | Feature                                                                                                         | Publication                                                   |
-|:--------------------------------------------|:----------------------------------------------------------------------------------------------------------------|--------------------------------------------------------------:|
-|[UNIT](projects/unit/README.md)               | Learn a one-to-one mapping between two visual domains.                                                          |    [Liu et. al. NeurIPS 2017](https://arxiv.org/abs/1703.00848) |
-|[MUNIT](projects/munit/README.md)             | Learn a many-to-many mapping between two visual domains.                                                        |    [Huang et. al. ECCV 2018](https://arxiv.org/abs/1804.04732) |
-|[FUNIT](projects/funit/README.md)             | Learn a style-guided image translation model that can generate translations in unseen domains.                  |    [Liu et. al. ICCV 2019](https://arxiv.org/abs/1905.01723) |
-|[COCO-FUNIT](projects/coco_funit/README.md)   | Improve FUNIT with a content-conditioned style encoding scheme for style code computation.                      |    [Saito et. al. ECCV 2020](https://arxiv.org/abs/2007.07431) |
-
-
-### Video-to-video Translation
-
-
-|Algorithm Name                               | Feature                                                                                                         | Publication                                                   |
-|:--------------------------------------------|:----------------------------------------------------------------------------------------------------------------|--------------------------------------------------------------:|
-|[vid2vid](projects/vid2vid/README.md)         | Learn a mapping that converts a semantic video to a photorealistic video.                                       |    [Wang et. al. NeurIPS 2018](https://arxiv.org/abs/1808.06601) |
-|[fs-vid2vid](projects/fs_vid2vid/README.md)   | Learn a subject-agnostic mapping that converts a semantic video and an example image to a photoreslitic video.  |    [Wang et. al. NeurIPS 2019](https://arxiv.org/abs/1808.06601) |
-|[wc-vid2vid](projects/wc_vid2vid/README.md)   | Improve vid2vid on view consistency and long-term consistency.                                                  |    [Mallya et. al. ECCV 2020](https://arxiv.org/abs/2007.08509) |
-
-
-
+Then, copy the checkpoint to a new folder of your choice, and run the inference command:
+```
+python -m torch.distributed.launch --nproc_per_node=1 inference.py 
+--config configs/projects/unit/simn2real/sim2real.yaml
+--checkpoint checkpoint_path_you_choosed
+--output_dir projects/unit/output/sim2real
+```
+The output dir should contain your generated data. To switch the domain translation from a -> b to b -> a, simply change the `a2b` field in `configs/projects/unit/sim2real/sim2real.yaml` to `False`
