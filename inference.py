@@ -80,7 +80,7 @@ def main():
 
     # Load checkpoint.
     trainer.load_checkpoint(cfg, args.checkpoint)
-
+    print("Trainer Loaded")
     # Do inference.
     trainer.current_epoch = -1
     trainer.current_iteration = -1

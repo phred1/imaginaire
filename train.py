@@ -71,7 +71,6 @@ def main():
         trainer.start_of_epoch(current_epoch)
         for it, data in enumerate(train_data_loader):
             data = trainer.start_of_iteration(data, current_iteration)
-
             for _ in range(cfg.trainer.dis_step):
                 trainer.dis_update(data)
             for _ in range(cfg.trainer.gen_step):
