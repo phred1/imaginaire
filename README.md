@@ -4,7 +4,7 @@ To reproduce our results, you will need :
 - A Simulator dataset and a Real dataset from Duckiebot logs. Both need to be of equal length.
 - Nvidia Docker as well as Nvidia drivers installed. 
 
-Then, make a train/test split with your dataset. 
+Then, make a train/test split with your dataset.
 Create a folder `/dataset/sim2real_raw` which follows this directory structure
  ```
     /dataset/sim2real_raw
@@ -27,8 +27,8 @@ Create a folder `/dataset/sim2real_raw` which follows this directory structure
                     - 0002.jpeg
                     - 0003.jpeg
  ```
-Here, `images_a` and `images_b` correspond to the real and sim environment. Both are interchangable
-as long as `a` is always associated to the same environement and same thing for `b`. Make sure to have the files 
+Here, `images_a` and `images_b` correspond to the real and sim environment. Both are interchangeable
+as long as `a` is always associated to the same environment and same thing for `b`. Make sure to have the files 
 saved as `.jpeg` and not `.jpg`, as this will cause some issues. 
 
 Once the raw data is set up, we need to build the lmdb dataset by running the following command:
@@ -45,7 +45,7 @@ Followed by:
 
 For more installation details, please refer to  [this README](https://github.com/phred1/imaginaire/blob/master/INSTALL.md)
 
-Once the container is successfuly started, run this command to train the model:
+Once the container is successfully started, run this command to train the model:
 
 ```
 python -m torch.distributed.launch --nproc_per_node=1 inference.py \
